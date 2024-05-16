@@ -93,6 +93,9 @@
     <Content Include="Resources\Coin.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Resources\obstacle.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Resources\opponent1_car.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

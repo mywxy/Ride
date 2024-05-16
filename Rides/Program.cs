@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
+using RacingGame;
 
 public static class Program
 {
@@ -13,6 +14,7 @@ public static class Program
         GameView view = new GameView();
         GameController controller = new GameController(model, view);
 
+        view.ShowStartMenu();
         Application.Run(view);
     }
 }

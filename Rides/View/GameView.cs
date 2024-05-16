@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Forms;
 using System;
 using System.Collections.Generic;
+using RacingGame;
 
 public class GameView : Form
 {
@@ -10,9 +11,13 @@ public class GameView : Form
     public PictureBox[] OpponentViews { get; private set; }
     private Label coinCounterLabel;
     public List<PictureBox> CoinViews { get; private set; }
+    public List<PictureBox> ObstacleViews { get; private set; }
     private Image backgroundImage;
-    private Image backgroundBuffer;
     private int backgroundY;
+    private Button startButton;
+    private Button restartButton;
+    public event EventHandler StartGame;
+    public event EventHandler RestartGame;
 
     public GameView()
     {
@@ -24,7 +29,6 @@ public class GameView : Form
         if (File.Exists(backgroundPath))
         {
             backgroundImage = Image.FromFile(backgroundPath);
-            backgroundBuffer = new Bitmap(800, 1200);
         }
         else
         {
@@ -32,7 +36,7 @@ public class GameView : Form
         }
 
         PlayerCarView = CreateCarPictureBox("player_car.png");
-        OpponentViews = new PictureBox[2];
+        OpponentViews = new PictureBox[4]; // увеличиваем количество противников
 
         for (int i = 0; i < OpponentViews.Length; i++)
         {
@@ -53,6 +57,28 @@ public class GameView : Form
         this.Controls.Add(coinCounterLabel);
 
         CoinViews = new List<PictureBox>();
+        ObstacleViews = new List<PictureBox>();
+
+        startButton = new Button
+        {
+            Text = "Start",
+            Location = new Point(350, 250),
+            Size = new Size(100, 50),
+            Font = new Font("Arial", 14, FontStyle.Bold)
+        };
+        startButton.Click += (sender, e) => StartGame?.Invoke(this, EventArgs.Empty);
+        this.Controls.Add(startButton);
+
+        restartButton = new Button
+        {
+            Text = "Restart",
+            Location = new Point(350, 250),
+            Size = new Size(100, 50),
+            Font = new Font("Arial", 14, FontStyle.Bold),
+            Visible = false
+        };
+        restartButton.Click += (sender, e) => RestartGame?.Invoke(this, EventArgs.Empty);
+        this.Controls.Add(restartButton);
     }
 
     private PictureBox CreateCarPictureBox(string imageFile)
@@ -91,6 +117,29 @@ public class GameView : Form
         };
     }
 
+    private PictureBox CreateObstaclePictureBox()
+    {
+        string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "obstacle.png");
+        if (!File.Exists(filePath))
+        {
+            // Логирование для отладки
+            MessageBox.Show($"Файл изображения препятствия не найден: {filePath}", "Ошибка загрузки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return new PictureBox
+            {
+                Size = new Size(50, 50),
+                BackColor = Color.Gray // Поддержка временной альтернативы
+            };
+        }
+
+        return new PictureBox
+        {
+            Size = new Size(50, 50),
+            Image = Image.FromFile(filePath),
+            SizeMode = PictureBoxSizeMode.StretchImage,
+            BackColor = Color.Transparent
+        };
+    }
+
     public void UpdateView(GameModel model)
     {
         PlayerCarView.Location = new Point(model.PlayerCar.PositionX, model.PlayerCar.PositionY);
@@ -116,27 +165,91 @@ public class GameView : Form
             this.Controls.Add(coinView);
             coinView.BringToFront();
         }
+
+        foreach (var obstacleView in ObstacleViews)
+        {
+            this.Controls.Remove(obstacleView);
+        }
+        ObstacleViews.Clear();
+
+        foreach (var obstacle in model.Obstacles)
+        {
+            var obstacleView = CreateObstaclePictureBox();
+            obstacleView.Location = new Point(obstacle.X, obstacle.Y);
+            ObstacleViews.Add(obstacleView);
+            this.Controls.Add(obstacleView);
+            obstacleView.BringToFront();
+        }
     }
 
-    public void MoveBackground(int offset)
+    public void MoveBackground()
     {
         if (backgroundImage != null)
         {
-            using (Graphics g = Graphics.FromImage(backgroundBuffer))
+            backgroundY += 7; // устанавливаем скорость фона
+            if (backgroundY >= 600)
             {
-                g.DrawImage(backgroundImage, new Rectangle(0, offset, 800, 600));
-                g.DrawImage(backgroundImage, new Rectangle(0, offset - 600, 800, 600));
+                backgroundY = 0;
             }
-            this.BackgroundImage = backgroundBuffer;
+            Invalidate(); // перерисовка формы
         }
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        base.OnPaint(e);
+
         if (backgroundImage != null)
         {
-            e.Graphics.DrawImage(backgroundBuffer, 0, 0);
+            e.Graphics.DrawImage(backgroundImage, new Rectangle(0, backgroundY, 800, 600));
+            e.Graphics.DrawImage(backgroundImage, new Rectangle(0, backgroundY - 600, 800, 600));
         }
-        base.OnPaint(e);
+    }
+
+    public void ShowStartMenu()
+    {
+        startButton.Visible = true;
+        restartButton.Visible = false;
+        coinCounterLabel.Visible = false;
+        PlayerCarView.Visible = false;
+        foreach (var opponentView in OpponentViews)
+        {
+            opponentView.Visible = false;
+        }
+        foreach (var coinView in CoinViews)
+        {
+            coinView.Visible = false;
+        }
+        foreach (var obstacleView in ObstacleViews)
+        {
+            obstacleView.Visible = false;
+        }
+    }
+
+    public void ShowGame()
+    {
+        startButton.Visible = false;
+        restartButton.Visible = false;
+        coinCounterLabel.Visible = true;
+        PlayerCarView.Visible = true;
+        foreach (var opponentView in OpponentViews)
+        {
+            opponentView.Visible = true;
+        }
+        foreach (var coinView in CoinViews)
+        {
+            coinView.Visible = true;
+        }
+        foreach (var obstacleView in ObstacleViews)
+        {
+            obstacleView.Visible = true;
+        }
+        this.Focus(); // Убедимся, что форма имеет фокус для получения событий клавиатуры
+    }
+
+    public void ShowGameOver()
+    {
+        restartButton.Visible = true;
+        restartButton.BringToFront(); // Переносим кнопку на передний план, чтобы она была видимой
     }
 }

@@ -10,9 +10,15 @@ public class GameView : Form
     public PictureBox PlayerCarView { get; private set; }
     public PictureBox[] OpponentViews { get; private set; }
     private Label coinCounterLabel;
+    private Label scoreLabel;
+    private Label recordLabel;
+    private Label goalLabel;
+    private Label welcomeLabel;
     public List<PictureBox> CoinViews { get; private set; }
     public List<PictureBox> ObstacleViews { get; private set; }
     private Image backgroundImage;
+    private Image startBackgroundImage;
+    private Image gameOverBackgroundImage;
     private int backgroundY;
     private Button startButton;
     private Button restartButton;
@@ -35,8 +41,28 @@ public class GameView : Form
             MessageBox.Show($"Файл фонового изображения не найден: {backgroundPath}", "Ошибка загрузки", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
+        string startBackgroundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "start_background_image.jpg");
+        if (File.Exists(startBackgroundPath))
+        {
+            startBackgroundImage = Image.FromFile(startBackgroundPath);
+        }
+        else
+        {
+            MessageBox.Show($"Файл фонового изображения для стартового экрана не найден: {startBackgroundPath}", "Ошибка загрузки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        string gameOverBackgroundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "gameover_background_image.jpg");
+        if (File.Exists(gameOverBackgroundPath))
+        {
+            gameOverBackgroundImage = Image.FromFile(gameOverBackgroundPath);
+        }
+        else
+        {
+            MessageBox.Show($"Файл фонового изображения для экрана проигрыша не найден: {gameOverBackgroundPath}", "Ошибка загрузки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
         PlayerCarView = CreateCarPictureBox("player_car.png");
-        OpponentViews = new PictureBox[4]; // увеличиваем количество противников
+        OpponentViews = new PictureBox[4];
 
         for (int i = 0; i < OpponentViews.Length; i++)
         {
@@ -56,6 +82,49 @@ public class GameView : Form
         };
         this.Controls.Add(coinCounterLabel);
 
+        scoreLabel = new Label
+        {
+            Location = new Point(350, 200),
+            AutoSize = true,
+            Font = new Font("Arial", 24, FontStyle.Bold),
+            ForeColor = Color.Red,
+            BackColor = Color.Transparent,
+            Visible = false
+        };
+        this.Controls.Add(scoreLabel);
+
+        recordLabel = new Label
+        {
+            Location = new Point(350, 300),
+            AutoSize = true,
+            Font = new Font("Arial", 24, FontStyle.Bold),
+            ForeColor = Color.Red,
+            BackColor = Color.Transparent,
+            Visible = false
+        };
+        this.Controls.Add(recordLabel);
+
+        goalLabel = new Label
+        {
+            Location = new Point(10, 40),
+            AutoSize = true,
+            Font = new Font("Arial", 16, FontStyle.Bold),
+            ForeColor = Color.White,
+            BackColor = Color.Transparent
+        };
+        this.Controls.Add(goalLabel);
+
+        welcomeLabel = new Label
+        {
+            Text = "Давно тебя не было в уличных гонках!",
+            Location = new Point(250, 320),
+            AutoSize = true,
+            Font = new Font("Arial", 16, FontStyle.Bold),
+            ForeColor = Color.White,
+            BackColor = Color.Transparent
+        };
+        this.Controls.Add(welcomeLabel);
+
         CoinViews = new List<PictureBox>();
         ObstacleViews = new List<PictureBox>();
 
@@ -72,7 +141,7 @@ public class GameView : Form
         restartButton = new Button
         {
             Text = "Restart",
-            Location = new Point(350, 250),
+            Location = new Point(350, 400),
             Size = new Size(100, 50),
             Font = new Font("Arial", 14, FontStyle.Bold),
             Visible = false
@@ -122,12 +191,11 @@ public class GameView : Form
         string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "obstacle.png");
         if (!File.Exists(filePath))
         {
-            // Логирование для отладки
             MessageBox.Show($"Файл изображения препятствия не найден: {filePath}", "Ошибка загрузки", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return new PictureBox
             {
                 Size = new Size(50, 50),
-                BackColor = Color.Gray // Поддержка временной альтернативы
+                BackColor = Color.Gray
             };
         }
 
@@ -150,6 +218,7 @@ public class GameView : Form
         }
 
         coinCounterLabel.Text = $"Монеты: {model.CoinCount}";
+        goalLabel.Text = $"Цель: {model.CurrentGoal}";
 
         foreach (var coinView in CoinViews)
         {
@@ -186,12 +255,12 @@ public class GameView : Form
     {
         if (backgroundImage != null)
         {
-            backgroundY += 7; // устанавливаем скорость фона
+            backgroundY += 7;
             if (backgroundY >= 600)
             {
                 backgroundY = 0;
             }
-            Invalidate(); // перерисовка формы
+            Invalidate();
         }
     }
 
@@ -199,7 +268,15 @@ public class GameView : Form
     {
         base.OnPaint(e);
 
-        if (backgroundImage != null)
+        if (startButton.Visible && startBackgroundImage != null)
+        {
+            e.Graphics.DrawImage(startBackgroundImage, new Rectangle(0, 0, 800, 600));
+        }
+        else if (restartButton.Visible && gameOverBackgroundImage != null)
+        {
+            e.Graphics.DrawImage(gameOverBackgroundImage, new Rectangle(0, 0, 800, 600));
+        }
+        else if (backgroundImage != null)
         {
             e.Graphics.DrawImage(backgroundImage, new Rectangle(0, backgroundY, 800, 600));
             e.Graphics.DrawImage(backgroundImage, new Rectangle(0, backgroundY - 600, 800, 600));
@@ -210,7 +287,11 @@ public class GameView : Form
     {
         startButton.Visible = true;
         restartButton.Visible = false;
+        welcomeLabel.Visible = true;
         coinCounterLabel.Visible = false;
+        goalLabel.Visible = false;
+        scoreLabel.Visible = false;
+        recordLabel.Visible = false;
         PlayerCarView.Visible = false;
         foreach (var opponentView in OpponentViews)
         {
@@ -224,13 +305,18 @@ public class GameView : Form
         {
             obstacleView.Visible = false;
         }
+        Invalidate();
     }
 
     public void ShowGame()
     {
         startButton.Visible = false;
         restartButton.Visible = false;
+        welcomeLabel.Visible = false;
+        scoreLabel.Visible = false;
+        recordLabel.Visible = false;
         coinCounterLabel.Visible = true;
+        goalLabel.Visible = true;
         PlayerCarView.Visible = true;
         foreach (var opponentView in OpponentViews)
         {
@@ -244,12 +330,46 @@ public class GameView : Form
         {
             obstacleView.Visible = true;
         }
-        this.Focus(); // Убедимся, что форма имеет фокус для получения событий клавиатуры
+        this.Focus();
     }
 
-    public void ShowGameOver()
+    public void ShowGameOver(int score, int record)
     {
+        scoreLabel.Text = $"Ваш счет: {score}";
+        recordLabel.Text = $"Рекорд: {record}";
+        scoreLabel.Visible = true;
+        recordLabel.Visible = true;
         restartButton.Visible = true;
-        restartButton.BringToFront(); // Переносим кнопку на передний план, чтобы она была видимой
+        restartButton.BringToFront();
+
+        coinCounterLabel.Visible = false;
+        goalLabel.Visible = false;
+        PlayerCarView.Visible = false;
+        foreach (var opponentView in OpponentViews)
+        {
+            opponentView.Visible = false;
+        }
+        foreach (var coinView in CoinViews)
+        {
+            coinView.Visible = false;
+        }
+        foreach (var obstacleView in ObstacleViews)
+        {
+            obstacleView.Visible = false;
+        }
+
+        foreach (var coinView in CoinViews)
+        {
+            this.Controls.Remove(coinView); 
+        }
+        CoinViews.Clear(); 
+
+        foreach (var obstacleView in ObstacleViews)
+        {
+            this.Controls.Remove(obstacleView); 
+        }
+        ObstacleViews.Clear(); 
+
+        Invalidate(); 
     }
 }

@@ -9,6 +9,7 @@ public class GameController
     private GameModel _model;
     private GameView _view;
     private Timer _gameTimer;
+    private int record;
 
     public GameController(GameModel model, GameView view)
     {
@@ -58,17 +59,17 @@ public class GameController
                 }
                 else
                 {
-                    car.Move(0, 1); // Если путь не найден, противник двигается вниз
+                    car.Move(0, 1);
                 }
             }
             else
             {
-                car.Move(0, 1); // Если монет меньше 50, противник двигается вниз
+                car.Move(0, 1);
             }
 
             if (car.PositionY > 600)
             {
-                car.PositionY = 0; // Перемещаем противника обратно в верхнюю часть экрана
+                car.PositionY = 0;
                 car.PositionX = _model.rand.Next(GameModel.LeftBoundary, GameModel.RightBoundary - 50 + 1);
             }
         }
@@ -95,9 +96,8 @@ public class GameController
             Rectangle carRect = _model.GetOpponentRectangle(car);
             if (playerRect.IntersectsWith(carRect))
             {
-                _gameTimer.Stop();
-                MessageBox.Show("Столкновение! Игра окончена.", "Конец игры", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                _view.ShowGameOver();
+                EndGame();
+                return;
             }
         }
 
@@ -106,11 +106,20 @@ public class GameController
             Rectangle obstacleRect = _model.GetObstacleRectangle(obstacle);
             if (playerRect.IntersectsWith(obstacleRect))
             {
-                _gameTimer.Stop();
-                MessageBox.Show("Столкновение с препятствием! Игра окончена.", "Конец игры", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                _view.ShowGameOver();
+                EndGame();
+                return;
             }
         }
+    }
+
+    private void EndGame()
+    {
+        _gameTimer.Stop();
+        if (_model.CoinCount > record)
+        {
+            record = _model.CoinCount;
+        }
+        _view.ShowGameOver(_model.CoinCount, record);
     }
 
     private void MoveBackground()

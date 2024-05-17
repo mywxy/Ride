@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
+using System;
 
 namespace RacingGame
 {
@@ -11,18 +11,19 @@ namespace RacingGame
         public List<Rectangle> Coins { get; private set; }
         public List<Obstacle> Obstacles { get; private set; }
         public int CoinCount { get; private set; }
+        public string CurrentGoal => GetCurrentGoal();
         public Random rand { get; private set; } = new Random();
         public const int LeftBoundary = 180;
-        public const int RightBoundary = 650; // 800 - 180 (с каждой стороны) - 50 (ширина машины)
+        public const int RightBoundary = 650;
         private const int GridSize = 50;
         private int[,] grid;
 
         public GameModel()
         {
-            PlayerCar = new Car(375, 500); // начальная позиция игрока
+            PlayerCar = new Car(375, 500);
             Opponents = new List<Car>
             {
-                new Car(100, 0), // начальная позиция противников
+                new Car(100, 0),
                 new Car(300, 0),
                 new Car(500, 0),
                 new Car(700, 0)
@@ -57,7 +58,7 @@ namespace RacingGame
             {
                 for (int y = 0; y < grid.GetLength(1); y++)
                 {
-                    grid[x, y] = 0; // 0 - свободная клетка
+                    grid[x, y] = 0;
                 }
             }
 
@@ -67,7 +68,7 @@ namespace RacingGame
                 int gridY = obstacle.Y / GridSize;
                 if (gridX >= 0 && gridX < grid.GetLength(0) && gridY >= 0 && gridY < grid.GetLength(1))
                 {
-                    grid[gridX, gridY] = 1; // 1 - препятствие
+                    grid[gridX, gridY] = 1;
                 }
             }
         }
@@ -77,7 +78,7 @@ namespace RacingGame
             if (PlayerCar.PositionX < LeftBoundary) PlayerCar.PositionX = LeftBoundary;
             if (PlayerCar.PositionX > RightBoundary - 50) PlayerCar.PositionX = RightBoundary - 50;
             if (PlayerCar.PositionY < 0) PlayerCar.PositionY = 0;
-            if (PlayerCar.PositionY > 500) PlayerCar.PositionY = 500; // 600 (высота формы) - 100 (высота машины)
+            if (PlayerCar.PositionY > 500) PlayerCar.PositionY = 500;
         }
 
         private void GenerateCoins()
@@ -91,9 +92,9 @@ namespace RacingGame
 
         private void AddCoin()
         {
-            int x = rand.Next(LeftBoundary, RightBoundary - 30 + 1); // Учитываем ширину монеты
+            int x = rand.Next(LeftBoundary, RightBoundary - 30 + 1);
             int y = rand.Next(-600, -50);
-            Coins.Add(new Rectangle(x, y, 30, 30)); // размер монеты 30x30
+            Coins.Add(new Rectangle(x, y, 30, 30));
         }
 
         public void MoveCoins()
@@ -101,8 +102,8 @@ namespace RacingGame
             for (int i = 0; i < Coins.Count; i++)
             {
                 Rectangle coin = Coins[i];
-                coin.Y += 5; // скорость монет
-                if (coin.Y > 600) // если монета вышла за нижний край экрана
+                coin.Y += 5;
+                if (coin.Y > 600)
                 {
                     Coins.RemoveAt(i);
                     i--;
@@ -150,7 +151,7 @@ namespace RacingGame
             Rectangle newObstacleRect;
             do
             {
-                x = rand.Next(LeftBoundary, RightBoundary - 50 + 1); // Учитываем ширину препятствия
+                x = rand.Next(LeftBoundary, RightBoundary - 50 + 1);
                 y = rand.Next(-800, -200);
                 newObstacleRect = new Rectangle(x, y, 50, 50);
             } while (IsObstacleOverlapping(newObstacleRect));
@@ -175,7 +176,7 @@ namespace RacingGame
             for (int i = 0; i < Obstacles.Count; i++)
             {
                 var obstacle = Obstacles[i];
-                obstacle.Y += 5; // скорость препятствий
+                obstacle.Y += 5;
                 if (obstacle.Y > 600)
                 {
                     Obstacles.RemoveAt(i);
@@ -195,8 +196,8 @@ namespace RacingGame
             {
                 do
                 {
-                    car.PositionX = rand.Next(LeftBoundary, RightBoundary - 50 + 1); // случайная позиция по X в пределах границ
-                    car.PositionY = rand.Next(-400, -100); // случайная позиция по Y (выше экрана)
+                    car.PositionX = rand.Next(LeftBoundary, RightBoundary - 50 + 1);
+                    car.PositionY = rand.Next(-400, -100);
                 }
                 while (IsOverlapping(car));
             }
@@ -264,7 +265,7 @@ namespace RacingGame
                 }
             }
 
-            return null; // путь не найден
+            return null;
         }
 
         private List<Point> GetNeighbors(Point point)
@@ -313,6 +314,22 @@ namespace RacingGame
         {
             return new Rectangle(obstacle.X, obstacle.Y, obstacle.Width, obstacle.Height);
         }
+
+        private string GetCurrentGoal()
+        {
+            if (CoinCount < 20)
+            {
+                return "Наберите 20 монет";
+            }
+            else if (CoinCount < 50)
+            {
+                return "Наберите 50 монет";
+            }
+            else
+            {
+                return "Соберите как можно больше монет";
+            }
+        }
     }
 
     public class Car
@@ -325,7 +342,7 @@ namespace RacingGame
         {
             PositionX = x;
             PositionY = y;
-            Speed = 5; // Вернем прежнюю скорость
+            Speed = 5;
         }
 
         public void Move(int deltaX, int deltaY)
